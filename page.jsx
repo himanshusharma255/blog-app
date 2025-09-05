@@ -1,76 +1,61 @@
 'use client'
-import { assets } from '@/Assets/assets'
-import axios from 'axios'
-import Image from 'next/image'
-import React, { useState } from 'react'
-import { toast } from 'react-toastify'
+import BlogTableItem from '@/Components/AdminComponents/BlogTableItem'
+import axios from 'axios';
+import React, { useEffect, useState } from 'react'
+import { toast } from 'react-toastify';
 
 const page = () => {
 
-    const [image,setImage] = useState(false);
-    const [data,setData] = useState({
-        title:"",
-        description:"",
-        category:"Startup",
-        author:"Alex Bennett",
-        authorImg:"/author_img.png"
+  const [blogs,setBlogs] = useState([]);
+
+  const fetchBlogs = async () => {
+    const response = await axios.get('/api/blog');
+    setBlogs(response.data.blogs);
+  }
+
+  const deleteBlog = async (mongoId) => {
+    const response = await axios.delete('/api/blog',{
+      params:{
+        id:mongoId
+      }
     })
+    toast.success(response.data.msg);
+    fetchBlogs();
+  }
 
-    const onChangeHandler = (event) =>{
-        const name = event.target.name;
-        const value = event.target.value;
-        setData(data=>({...data,[name]:value}));
-        console.log(data);
-    }
-
-    const onSubmitHandler = async (e) =>{
-        e.preventDefault();
-        const formData = new FormData();
-        formData.append('title',data.title);
-        formData.append('description',data.description);
-        formData.append('category',data.category);
-        formData.append('author',data.author);
-        formData.append('authorImg',data.authorImg);
-        formData.append('image',image);
-        const response = await axios.post('/api/blog',formData);
-        if (response.data.success) {
-            toast.success(response.data.msg);
-            setImage(false);
-            setData({
-              title:"",
-              description:"",
-              category:"Startup",
-              author:"Alex Bennett",
-              authorImg:"/author_img.png"
-            });
-        }
-        else{
-            toast.error("Error");
-        }
-    }
+  useEffect(()=>{
+    fetchBlogs()
+  },[])
 
   return (
-    <>
-      <form onSubmit={onSubmitHandler} className='pt-5 px-5 sm:pt-12 sm:pl-16'>
-        <p className='text-xl'>Upload thumbnail</p>
-        <label htmlFor="image">
-            <Image className='mt-4' src={!image?assets.upload_area:URL.createObjectURL(image)} width={140} height={70} alt=''/>
-        </label>
-        <input onChange={(e)=>setImage(e.target.files[0])} type="file" id='image' hidden required />
-        <p className='text-xl mt-4'>Blog title</p>
-        <input name='title' onChange={onChangeHandler} value={data.title} className='w-full sm:w-[500px] mt-4 px-4 py-3 border' type="text" placeholder='Type here' required />
-        <p className='text-xl mt-4'>Blog Description</p>
-        <textarea name='description' onChange={onChangeHandler} value={data.description} className='w-full sm:w-[500px] mt-4 px-4 py-3 border' type="text" placeholder='write content here' rows={6} required />
-        <p className='text-xl mt-4'>Blog category</p>
-        <select name="category" onChange={onChangeHandler} value={data.category} className='w-40 mt-4 px-4 py-3 border text-gray-500'>
-            <option value="Startup">Startup</option>
-            <option value="Technology">Technology</option>
-            <option value="Lifestyle">Lifestyle</option>
-        </select>
-        <br />
-        <button type="submit" className='mt-8 w-40 h-12 bg-black text-white'>ADD</button>
-      </form>
-    </>
+    <div className='flex-1 pt-5 px-5 sm:pt-12 sm:pl-16'>
+      <h1>All blogs</h1>
+      <div className="relative h-[80vh] max-w-[850px] overflow-x-auto mt-4 border border-gray-400 scrollbar-hide">
+                <table className="w-full text-sm text-gray-500">
+                    <thead className="text-xs text-gray-700 text-left uppercase bg-gray-50">
+                        <tr>
+                            <th scope="col" className="hidden sm:block px-6 py-3">
+                                Author name
+                            </th>
+                            <th scope="col" className="px-6 py-3">
+                                Blog Title
+                            </th>
+                            <th scope="col" className="px-6 py-3">
+                                Date
+                            </th>
+                            <th scope="col" className="px-2 py-3">
+                                Action
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                      {blogs.map((item,index)=>{
+                          return <BlogTableItem key={index} mongoId={item._id} title={item.title} author={item.author} authorImg={item.authorImg} date={item.date} deleteBlog={deleteBlog}/>
+                      })}
+                    </tbody>
+                </table>
+            </div>
+    </div>
   )
 }
 
